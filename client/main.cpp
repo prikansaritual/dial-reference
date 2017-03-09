@@ -30,12 +30,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifndef _WIN32
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <net/if.h>
 #include <netinet/in.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
+#else
+#include <WinSock2.h>
+#include <WS2tcpip.h>
+#endif
 
 using namespace std;
 
@@ -176,7 +181,13 @@ static void sendMagic(string macAddr)
     udpSocket = socket(AF_INET, SOCK_DGRAM, 0);
 
     /** you need to set this so you can broadcast **/
-    if (setsockopt(udpSocket, SOL_SOCKET, SO_BROADCAST, &broadcast, sizeof broadcast) == -1) {
+    if (setsockopt(udpSocket, SOL_SOCKET, SO_BROADCAST, 
+#ifdef _WIN32
+		(const char *)&broadcast,
+#else
+		(const void *)&broadcast,
+#endif		
+		sizeof broadcast) == -1) {
         perror("setsockopt (SO_BROADCAST)");
         exit(1);
     }
@@ -192,7 +203,13 @@ static void sendMagic(string macAddr)
     udpServer.sin_port = htons(9);
 
     /** send the packet **/
-    sendto(udpSocket, &tosend, sizeof(unsigned char) * 102, 0, (struct sockaddr*)&udpServer, sizeof(udpServer));
+    sendto(udpSocket, 
+#ifdef _WIN32
+		(const char*) &tosend,
+#else
+		(const void*)&tosend,
+#endif
+		sizeof(unsigned char) * 102, 0, (struct sockaddr*)&udpServer, sizeof(udpServer));
 }
 
 
@@ -347,14 +364,29 @@ int parseArgs( int argc, char* argv[] )
 }
 
 int main(int argc, char* argv[]) {
-    parseArgs(argc, argv);
+
+#ifdef _WIN32
+	int iResult;
+	WSADATA wsaData;
+	iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
+	if (iResult != 0) {
+		printf("WSAStartup failed: %d\n", iResult);
+		return 1;
+	}
+#endif
+
+	parseArgs(argc, argv);
 
     gpDiscovery = DialDiscovery::create();
     gpDiscovery->init();
     DialConformance::create();
 
     // Sleep for 2 seconds to allow DIAL servers to response to MSEARCH.
+#ifdef _WIN32
+	Sleep(2000);
+#else
     sleep(2);
+#endif
 
     if ( gUseMenu )
     {

@@ -27,6 +27,10 @@
 #define DIALDISCOVERY_H
 
 #include "DialServer.h"
+#ifdef _WIN32
+#define HAVE_STRUCT_TIMESPEC
+#endif
+#include <pthread.h>
 #include <map>
 
 using namespace std;

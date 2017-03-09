@@ -32,7 +32,11 @@
 #include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
+#ifndef _WIN32
 #include <unistd.h>
+#else
+#include <windows.h>
+#endif
 
 // Number of milliseconds to sleep between launches when doing a launch=ALL
 #define LAUNCH_SLEEP 6000
@@ -422,7 +426,11 @@ bool DialConformance::execute_command( string& command, vector<string>& params )
         time = command.substr(pos+1, command.length());
         unsigned long milliseconds = atoi(time.c_str());
         ATRACE("Sleeping %ld milliseconds \n", milliseconds);
+#ifndef _WIN32
         usleep(milliseconds*1000);
+#else
+		Sleep(milliseconds);
+#endif
         retval = true;
     }
     else ATRACE("Can't execute command: %s\n", command.c_str());
@@ -528,7 +536,11 @@ void DialConformance::run_internal( DialServer* pServer )
                 time = (*it).substr(pos+1, command.length());
                 unsigned long milliseconds = atoi(time.c_str());
                 ATRACE("Sleeping %ld milliseconds \n", milliseconds);
+#ifndef _WIN32
                 usleep(milliseconds*1000);
+#else
+				Sleep(milliseconds);
+#endif
             }
         }
 

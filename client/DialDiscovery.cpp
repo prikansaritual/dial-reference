@@ -22,19 +22,31 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF 
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#ifdef _WIN32
+//#include <windows.h>
+#include <winsock2.h>
+#include <WS2tcpip.h>
+#endif
 
+#ifndef _WIN32
 #include <arpa/inet.h>
 #include <net/if.h>
 #include <netinet/in.h>
+#endif
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <string>
 #include <map>
 #include <curl/curl.h>
+#ifndef _WIN32
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#endif
+#ifdef _WIN32
+#define HAVE_STRUCT_TIMESPEC
+#endif
 #include <pthread.h>
 #include <iostream>
 #include <vector>
@@ -314,7 +326,8 @@ void *DialDiscovery::send_mcast()
     int one = 1, my_sock;
     socklen_t addrlen;
     //struct ip_mreq mreq;
-    char send_buf[strlen((char*)ssdp_msearch) + INET_ADDRSTRLEN + 256] = {0,};
+	//int len = sizeof(ssdp_msearch) + INET_ADDRSTRLEN + 256;
+    char send_buf[sizeof(ssdp_msearch)/sizeof(char) + INET_ADDRSTRLEN + 256] = {0,};
     int send_size;
     search_conn connection;
 
@@ -327,7 +340,13 @@ void *DialDiscovery::send_mcast()
         perror("socket");
         exit(1);
     }
-    if (-1 == setsockopt(my_sock, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one))) {
+    if (-1 == setsockopt(my_sock, SOL_SOCKET, SO_REUSEADDR, 
+#ifdef _WIN32
+		(const char *)&one, 
+#else
+		(const void *)&one,
+#endif		
+		sizeof(one))) {
         perror("reuseaddr");
         exit(1);
     }
